@@ -14,7 +14,7 @@ install_requires = [
 
 setuptools.setup(
     name='llmatch',
-    version='2025.4.181147',
+    version='2025.4.181303',
     author='Eugene Evstafev',
     author_email='chigwel@gmail.com',
     description='Reliable LLM interaction with pattern matching and retries.',

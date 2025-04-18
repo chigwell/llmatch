@@ -3,7 +3,7 @@ import time
 from typing import Any, Dict, List, Optional, Pattern, Type
 
 from langchain_llm7 import ChatLLM7
-from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
 
 
 
@@ -116,6 +116,8 @@ def llmatch(
                     print(f"Error: {last_error} Response: {response}")
                 # Decide if this specific error warrants a retry or immediate failure
                 # Let's retry for now.
+                messages.append(AIMessage(content=str(response)))
+                messages.append(HumanMessage(content=f"Retrying due to error: {last_error}"))
                 retry_count += 1
                 if retry_count <= max_retries: time.sleep(current_delay); current_delay *= backoff_factor
                 continue
@@ -129,6 +131,8 @@ def llmatch(
                 if verbose:
                     print(f"Error: {last_error} Content: {content}")
                 # Let's retry for now.
+                messages.append(AIMessage(content=content))
+                messages.append(HumanMessage(content=f"Retrying due to error: {last_error}"))
                 retry_count += 1
                 if retry_count <= max_retries: time.sleep(current_delay); current_delay *= backoff_factor
                 continue
@@ -155,7 +159,8 @@ def llmatch(
                     last_error = f"Pattern '{compiled_pattern.pattern}' not found in response."
                     if verbose:
                         print(f"Info: {last_error}")
-                    # Continue to retry
+                    messages.append(AIMessage(content=content))
+                    messages.append(HumanMessage(content=f"Retry due to error: {last_error}"))
             else:
                 # No pattern provided, first valid string response is success
                 if verbose:
@@ -173,6 +178,8 @@ def llmatch(
             last_error = f"Exception during LLM invocation: {e}"
             if verbose:
                 print(f"Error: {last_error}")
+            messages.append(AIMessage(content=str(e)))
+            messages.append(HumanMessage(content=f"Retrying due to error: {last_error}"))
             # Continue to retry after exception
 
         # --- Prepare for next retry ---
@@ -182,6 +189,8 @@ def llmatch(
                 print(f"Retrying in {current_delay:.2f} seconds...")
             time.sleep(current_delay)
             current_delay *= backoff_factor # Increase delay for next time
+            messages.append(AIMessage(content="Retrying..."))
+            messages.append(HumanMessage(content=f"Retry attempt {attempt} due to error: {last_error}"))
 
     # --- End of Retries ---
     if verbose:
